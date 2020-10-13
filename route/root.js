@@ -1,8 +1,10 @@
 const express= require('express');
 const multer= require('multer');
 const path= require('path');
+const Op = require('../database').Op;
 const db= require('../database').db;
 const users= require('../database').users;
+const message = require('../database').message;
 const fs= require('fs');
 const route= express.Router();
 
@@ -73,7 +75,7 @@ route.get('/delete/profile_image',(req,res)=>{
         fs.unlink('./public/uploads/'+req.user.profile_picture , (err) => {
             if (err){
                 console.log(err);
-                throw err;
+                // throw err;
             }
             console.log('The file has been deleted');
         });
@@ -145,6 +147,92 @@ route.get('/verify_user',(req,res)=>{
     else
         res.send(undefined);
 });
+
+//post chat messages
+route.post('/chat_message', (req,res)=>{
+    if(req.user){
+        message.create({
+            from: req.user.username,
+            to: req.body.username,
+            msg: req.body.msg
+        }).then((message)=>{
+            if(message){
+                console.log('Message has successfully sent');
+                return res.send(message);
+            } else {
+                console.log('Error in /root/chat_message');
+                return res.send(undefined);
+            }
+        })
+    }
+    else{
+        console.log('User not found');
+        res.send(undefined);
+    }
+})
+
+//get chat messages
+route.post('/get_chat_message', (req,res)=>{
+    if(req.user){
+        console.log(req.body.username, req.user.username);
+        message.findAll({
+            where: {
+                from: {
+                    [Op.or]: [req.body.username, req.user.username]
+                },
+                to: {
+                    [Op.or]: [req.body.username, req.user.username]
+                }
+            },
+            order: [
+                ['id', 'ASC']
+            ]
+        }).then((message)=>{
+            if(message){
+                console.log('Message Found');
+                return res.send(message);
+            }
+            else{
+                console.log('Message not Found');
+                return res.send(undefined);
+            }
+        })
+    }
+    else{
+        console.log('User not found');
+        res.send(undefined);
+    }
+})
+
+//post message-seen
+route.post('/message_seen', (req,res)=>{
+    if(req.user){
+        console.log(req.body.username, req.user.username);
+        message.update(
+            { isSeen: '1' },
+            {
+                where: {
+                    from: req.body.username,
+                    to: req.user.username,
+                    isSeen: '0'
+                }
+            }
+        ).then((messages)=>{
+            if(messages){
+                console.log('Messages updated successfully');
+                return res.send(req.user.username);
+            }
+            else{
+                console.log('messages not found');
+                return res.send(undefined);
+            }
+        })
+    }
+    else{
+        console.log('User not found');
+        return res.send(undefined);
+    }
+})
 
 //get details of a particular user
 route.get('/personal_details',(req,res)=>{

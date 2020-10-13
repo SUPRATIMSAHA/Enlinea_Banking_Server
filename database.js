@@ -65,6 +65,23 @@ const notification= db.define('notification',{
     msg: sequelize.STRING
 })
 
+//message table
+const message= db.define('message',{
+    from: {
+        type: sequelize.STRING,
+        allowNull: false
+    },
+    to: {
+        type: sequelize.STRING,
+        allowNull: false
+    },
+    isSeen: {
+        type: sequelize.BOOLEAN,
+        defaultValue: '0',
+    },
+    msg: sequelize.STRING
+})
+
 function admin_callback(){
     db.query(`INSERT IGNORE INTO users (username,password,first_name,last_name,profile_picture)` +
             `VALUES ('admin','9073326812','Admin','Admin','000.jpg')`);
@@ -84,5 +101,6 @@ module.exports = {
     users,
     account_status,
     friends,
-    notification
+    notification,
+    message
 };

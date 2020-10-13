@@ -96,6 +96,19 @@ io.on('connection', (socket) => {
         }
     })
 
+    socket.on('chatMessage', ({message, username, other_user})=> {
+        console.log(message, username, other_user);
+        console.log(id_storage, page_storage);
+        if(id_storage[other_user])
+            io.to(id_storage[other_user]).emit('message', {message, username});
+        socket.emit('myMessage', message);
+    })
+
+    socket.on('message-seen', ({username, other_user})=>{
+        if(id_storage[other_user])
+            io.to(id_storage[other_user]).emit('isSeen', username);
+    })
+
     socket.on("disconnect",()=>{
         console.log(socket.id + " disconnected");
     })

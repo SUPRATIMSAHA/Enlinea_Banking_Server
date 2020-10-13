@@ -4,6 +4,8 @@ let target_username = window.location.href.split('/');
 target_username = target_username[ target_username.length - 1 ];
 console.log("targeted username : " + target_username);
 let global_username;
+let profile_picture = '';
+let global_size = -1;
 $.get('/root/get/username',(data)=>{
     if(data){
         global_username = data;
@@ -92,6 +94,7 @@ $(function(){
             new Promise(function(resolve,reject){
                 $.post('/account_user/other_user/get_details',{otheruser: username},(user)=>{
                     if(user) {
+                        profile_picture = user.profile_picture;
                         $('.fabs .chat_header .header_img img').attr("src" , "../uploads/" + user.profile_picture );
                         $('.fabs .chat_header #chat_head').html(user.first_name);
                         resolve();
@@ -101,7 +104,49 @@ $(function(){
                 })
             })
             .then(()=>{$(".fabs").show();});
-            
+            $.post('/root/get_chat_message', {username: target_username}, (res)=>{
+                let chat_message = `<p>You and ${username} are friends now</p>`;
+                console.log(res);
+                if(res){
+                    let size = res.length;
+                    let first = -1;
+                    for(let i = 0; i < size; i++){
+                        if(res[i].from != username){
+                            if(!res[i].isSeen){
+                                break;
+                            }
+                            else
+                                first = i;
+                        }
+                    }
+                    for(let i = 0; i < size; i++){
+                        if(res[i].from == username){
+                            var newString = res[i].msg.replace(/ /g, "&nbsp;");
+                            newString = newString.replace(/\n/g, "<br />");
+                            chat_message += `<span class="chat_msg_item chat_msg_item_admin">
+                                  <div class="chat_avatar">
+                                  <img src="../uploads/${profile_picture}"/>
+                                  </div>${newString}
+                            </span>`;
+                        }
+                        else{
+                            var newString = res[i].msg.replace(/ /g, "&nbsp;");
+                            newString = newString.replace(/\n/g, "<br />")
+                            chat_message += `<span id="${i}" class="chat_msg_item chat_msg_item_user">
+                                    ${newString}
+                            </span>`;
+                            if(i == first){
+                                first = false;
+                                chat_message += `<span class="seen_avatar">
+                                    <img src="../uploads/${profile_picture}" />
+                                </span>`;
+                            }
+                            global_size = i;
+                        }
+                    }
+                }
+                $("#chat_converse").html(chat_message);
+            })
         }
         else{
             $(".add_friend").show();
@@ -277,10 +322,14 @@ $(function(){
         if(data.status === "online"){
             $("#online_status").removeClass("hide");
             $("#offline_status").addClass("hide");
+            $(".chat_option .offline").remove();
+            $(".chat_option").append('<span class="online">(Online)</span>');
         }
         else{
             $("#offline_status").removeClass("hide");
             $("#online_status").addClass("hide");
+            $(".chat_option .online").remove();
+            $(".chat_option").append('<span class="offline">(Offline)</span>');
         }
     })
 
@@ -289,9 +338,13 @@ $(function(){
             if(data.status === "online"){
                 $("#online_status").removeClass("hide");
                 $("#offline_status").addClass("hide");
+                $(".chat_option .offline, .chat_option .online").remove();
+                $(".chat_option").append('<span class="online">(Online)</span>');
             } else {
                 $("#offline_status").removeClass("hide");
                 $("#online_status").addClass("hide");
+                $(".chat_option .online, .chat_option .offline").remove();
+                $(".chat_option").append('<span class="offline">(Offline)</span>');
             }
         }
     })
